@@ -1,8 +1,3 @@
-/*
- * main.c — Lab Expert DSP/IA
- * MPU6050 (acelerometro) -> Edge Impulse (idle / updown / wave) -> LED RGB
- */
-
 #include <stdio.h>
 #include <string.h>
 #include "pico/stdlib.h"
@@ -16,11 +11,6 @@
 /* Funcoes da IA (definidas em ia.cpp) */
 extern int ia_classificar(float *features, int n, float *confianca_out, const char **label_out);
 extern int ia_window_size(void);
-
-/* LED RGB */
-#define LED_IDLE    18
-#define LED_UPDOWN  19
-#define LED_WAVE    20
 
 /* MPU6050 */
 #define I2C_PORT    i2c0
@@ -87,12 +77,8 @@ static void imu_task(void *params) {
     }
 }
 
-/* ===== Task: classifica e acende o LED ===== */
+/* ===== Task: Executa a inferencia ===== */
 static void ia_task(void *params) {
-    gpio_init(LED_IDLE);   gpio_set_dir(LED_IDLE,   GPIO_OUT);
-    gpio_init(LED_UPDOWN); gpio_set_dir(LED_UPDOWN, GPIO_OUT);
-    gpio_init(LED_WAVE);   gpio_set_dir(LED_WAVE,   GPIO_OUT);
-
     static ia_window_t win;
 
     while (true) {
@@ -102,16 +88,7 @@ static void ia_task(void *params) {
         const char *label = "?";
         int gesto = ia_classificar(win.data, IA_WINDOW * 3, &conf, &label);
 
-        if (gesto < 0) {
-            printf("[IA] erro\n");
-            continue;
-        }
-
         printf("[IA] %s (%.2f)\n", label, (double)conf);
-
-        gpio_put(LED_IDLE,   strcmp(label, "idle")   == 0);
-        gpio_put(LED_UPDOWN, strcmp(label, "updown") == 0);
-        gpio_put(LED_WAVE,   strcmp(label, "wave")   == 0);
     }
 }
 
